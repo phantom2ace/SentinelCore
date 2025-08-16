@@ -1,15 +1,18 @@
 import argparse
 import logging
 import sys
+from sqlalchemy.orm import joinedload
 from scanner import full_scan
 from vulnerability_scanner import scan_vulnerabilities
-from database import engine, Asset, Service
+from database import Asset, Vulnerability, Service, engine
 from sqlalchemy.orm import sessionmaker
+from cloud_integration import discover_aws_resources, discover_azure_resources
+from reporting import generate_csv_report
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(message)s',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger('SentinelCLI')
@@ -21,8 +24,7 @@ def list_assets():
     assets = session.query(Asset).all()
     
     if not assets:
-        logger.info("\n❌ No devices found in database")
-        logger.info("Run a scan first with: python cli.py scan YOUR_SUBNET")
+        logger.info("No devices found. Run discovery scan first.")
         return
     
     logger.info("\n📋 Discovered Assets")
@@ -69,7 +71,7 @@ def main():
     # List command
     list_parser = subparsers.add_parser(
         'list', 
-        help='List discovered assets'
+        help='List discovered items'
     )
     list_parser.add_argument(
         '--type', 
@@ -82,6 +84,40 @@ def main():
     subparsers.add_parser(
         'scan-vuln', 
         help='Scan for vulnerabilities in discovered assets'
+    )
+    
+    # Cloud discovery commands
+    aws_parser = subparsers.add_parser(
+        'discover-aws',
+        help='Discover AWS resources'
+    )
+    
+    azure_parser = subparsers.add_parser(
+        'discover-azure',
+        help='Discover Azure resources'
+    )
+    azure_parser.add_argument(
+        '--subscription-id', 
+        required=True,
+        help='Azure subscription ID'
+    )
+    
+    # Reporting command
+    report_parser = subparsers.add_parser(
+        'generate-report',
+        help='Generate security report'
+    )
+    report_parser.add_argument(
+        '--format',
+        choices=['csv'],
+        default='csv',
+        help='Report format (default: csv)'
+    )
+    
+    # Dashboard command
+    subparsers.add_parser(
+        'run-dashboard',
+        help='Start the web dashboard'
     )
     
     # Database management command
@@ -112,7 +148,28 @@ def main():
         elif args.command == 'scan-vuln':
             logger.info("🔍 Starting vulnerability scan")
             scan_vulnerabilities()
+            logger.info("✅ Vulnerability scan completed!")
             
+        elif args.command == 'discover-aws':
+            logger.info("☁️ Discovering AWS resources...")
+            assets = discover_aws_resources()
+            logger.info(f"Found {len(assets)} AWS resources")
+            
+        elif args.command == 'discover-azure':
+            logger.info("☁️ Discovering Azure resources...")
+            assets = discover_azure_resources(args.subscription_id)
+            logger.info(f"Found {len(assets)} Azure resources")
+            
+        elif args.command == 'generate-report':
+            if args.format == 'csv':
+                filename = generate_csv_report()
+                logger.info(f"✅ Report generated: {filename}")
+                
+        elif args.command == 'run-dashboard':
+            logger.info("🌐 Starting web dashboard...")
+            from dashboard import app
+            app.run(debug=True)
+                
         elif args.command == 'db-reset':
             confirm = input("⚠️ WARNING: This will delete ALL data! Continue? (y/N): ")
             if confirm.lower() == 'y':
