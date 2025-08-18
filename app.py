@@ -52,3 +52,9 @@ def create_app():
             session.close()
     
     return app
+
+# Create the app instance for gunicorn
+app = create_app()
+
+if __name__ == '__main__':
+    app.run(debug=True)
