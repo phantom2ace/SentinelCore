@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Remediation Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Remediation Dashboard</h1>
+    <p class="lead">Manage and apply security remediations</p>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Auto-Remediation</h5>
+                </div>
+                <div class="card-body">
+                    <p>Automatically remediate critical vulnerabilities based on CVSS threshold.</p>
+                    <form action="/dashboard/remediate/auto" method="post">
+                        <div class="mb-3">
+                            <label for="threshold" class="form-label">CVSS Threshold</label>
+                            <input type="number" class="form-control" id="threshold" name="threshold" value="9.0" min="0" max="10" step="0.1">
+                            <div class="form-text">Vulnerabilities with CVSS scores at or above this threshold will be remediated.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Run Auto-Remediation</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">Quarantine High-Risk Assets</h5>
+                </div>
+                <div class="card-body">
+                    <p>Isolate assets with critical vulnerabilities and known exploits.</p>
+                    <form action="/dashboard/remediate/quarantine" method="post">
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason for Quarantine</label>
+                            <input type="text" class="form-control" id="reason" name="reason" value="Web-initiated quarantine">
+                        </div>
+                        <button type="submit" class="btn btn-warning">Quarantine High-Risk Assets</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Manual Remediation</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>CVE ID</th>
+                            <th>CVSS</th>
+                            <th>Asset</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vuln in vulnerabilities %}
+                        <tr class="{% if vuln.cvss_score >= 7.0 %}table-danger{% elif vuln.cvss_score >= 4.0 %}table-warning{% else %}table-info{% endif %}">
+                            <td>{{ vuln.cve_id }}</td>
+                            <td>{{ vuln.cvss_score }}</td>
+                            <td>{{ vuln.asset.hostname }} ({{ vuln.asset.ip }})</td>
+                            <td>{{ vuln.description[:100] }}{% if vuln.description|length > 100 %}...{% endif %}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <form action="/dashboard/remediate/patch" method="post" style="display: inline;">
+                                        <input type="hidden" name="asset_id" value="{{ vuln.asset.id }}">
+                                        <input type="hidden" name="vuln_id" value="{{ vuln.id }}">
+                                        <button type="submit" class="btn btn-sm btn-success">Patch</button>
+                                    </form>
+                                    <form action="/dashboard/remediate/isolate" method="post" style="display: inline; margin-left: 5px;">
+                                        <input type="hidden" name="asset_id" value="{{ vuln.asset.id }}">
+                                        <input type="hidden" name="reason" value="Manual isolation due to {{ vuln.cve_id }}">
+                                        <button type="submit" class="btn btn-sm btn-danger">Isolate Asset</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Isolated Assets</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Asset ID</th>
+                            <th>Hostname</th>
+                            <th>IP Address</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in isolated_assets %}
+                        <tr>
+                            <td>{{ asset.id }}</td>
+                            <td>{{ asset.hostname }}</td>
+                            <td>{{ asset.ip }}</td>
+                            <td>{{ asset.type }}</td>
+                            <td>
+                                <form action="/dashboard/remediate/restore" method="post">
+                                    <input type="hidden" name="asset_id" value="{{ asset.id }}">
+                                    <input type="hidden" name="reason" value="Manual restoration from web interface">
+                                    <button type="submit" class="btn btn-sm btn-primary">Restore Access</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not isolated_assets %}
+                        <tr>
+                            <td colspan="5" class="text-center">No isolated assets found</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

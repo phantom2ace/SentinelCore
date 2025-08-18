@@ -4,6 +4,7 @@ from flask import Flask, render_template
 from database import Asset, Vulnerability, Service
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
+from dashboard import dashboard
 
 def create_app():
     app = Flask(__name__)
@@ -13,6 +14,9 @@ def create_app():
     
     from dashboard import app as dashboard_blueprint
     app.register_blueprint(dashboard_blueprint)
+    
+    from api import api
+    app.register_blueprint(api)
     
     @app.route('/')
     def index():

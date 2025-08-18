@@ -126,6 +126,36 @@ def main():
         help='Reset the database (DANGER: Deletes all data!)'
     )
     
+    # Remediation commands
+    remediate_parser = subparsers.add_parser(
+        'remediate', 
+        help='Apply security remediations'
+    )
+    remediate_subparsers = remediate_parser.add_subparsers(dest='remediate_command', help='Remediation action')
+    
+    # Auto-remediate command
+    auto_parser = remediate_subparsers.add_parser('auto', help='Automatically remediate critical vulnerabilities')
+    auto_parser.add_argument('--threshold', type=float, default=9.0, help='CVSS threshold for auto-remediation')
+    
+    # Patch command
+    patch_parser = remediate_subparsers.add_parser('patch', help='Apply patch for a specific vulnerability')
+    patch_parser.add_argument('--asset-id', type=int, required=True, help='Asset ID to patch')
+    patch_parser.add_argument('--vuln-id', type=int, required=True, help='Vulnerability ID to patch')
+    
+    # Quarantine command
+    quarantine_parser = remediate_subparsers.add_parser('quarantine', help='Quarantine high-risk assets')
+    quarantine_parser.add_argument('--reason', help='Reason for quarantine action')
+    
+    # Isolate asset command
+    isolate_parser = remediate_subparsers.add_parser('isolate', help='Isolate a specific asset')
+    isolate_parser.add_argument('--asset-id', type=int, required=True, help='Asset ID to isolate')
+    isolate_parser.add_argument('--reason', help='Reason for isolation')
+    
+    # Restore asset command
+    restore_parser = remediate_subparsers.add_parser('restore', help='Restore a previously isolated asset')
+    restore_parser.add_argument('--asset-id', type=int, required=True, help='Asset ID to restore')
+    restore_parser.add_argument('--reason', help='Reason for restoration')
+    
     # Help fallback
     if len(sys.argv) == 1:
         parser.print_help()
@@ -171,14 +201,59 @@ def main():
             app.run(debug=True)
                 
         elif args.command == 'db-reset':
-            confirm = input("⚠️ WARNING: This will delete ALL data! Continue? (y/N): ")
-            if confirm.lower() == 'y':
-                from database import Base, engine
-                Base.metadata.drop_all(engine)
-                Base.metadata.create_all(engine)
-                logger.info("✅ Database reset complete")
+             confirm = input("⚠️ WARNING: This will delete ALL data! Continue? (y/N): ")
+             if confirm.lower() == 'y':
+                 from database import Base, engine
+                 Base.metadata.drop_all(engine)
+                 Base.metadata.create_all(engine)
+                 logger.info("✅ Database reset complete")
+             else:
+                 logger.info("Database reset canceled")
+            
+    elif args.command == 'remediate':
+        if args.remediate_command == 'auto':
+            logger.info(f"🔧 Auto-remediating vulnerabilities with CVSS >= {args.threshold}...")
+            from remediation import auto_remediate_critical_vulnerabilities
+            results = auto_remediate_critical_vulnerabilities(cvss_threshold=args.threshold)
+            logger.info(f"✅ Remediation summary: {results['attempted']} attempted, {results['successful']} successful, {results['failed']} failed")
+            
+        elif args.remediate_command == 'patch':
+            logger.info(f"🔧 Applying patch for vulnerability {args.vuln_id} on asset {args.asset_id}...")
+            from remediation import apply_patch
+            result = apply_patch(args.asset_id, args.vuln_id)
+            if result['success']:
+                logger.info(f"✅ Success: {result['message']}")
             else:
-                logger.info("Database reset canceled")
+                logger.error(f"❌ Failed: {result['message']}")
+                
+        elif args.remediate_command == 'quarantine':
+            reason = args.reason or "CLI-initiated quarantine"
+            logger.info("🔒 Quarantining high-risk assets...")
+            from remediation import quarantine_infected_assets
+            results = quarantine_infected_assets(reason=reason)
+            logger.info(f"✅ Quarantine summary: {results['attempted']} attempted, {results['successful']} successful, {results['failed']} failed")
+            
+        elif args.remediate_command == 'isolate':
+            reason = args.reason or "CLI-initiated isolation"
+            logger.info(f"🔒 Isolating asset {args.asset_id}...")
+            from enforcement import isolate_asset
+            result = isolate_asset(args.asset_id, reason=reason)
+            if result['success']:
+                logger.info(f"✅ Success: {result['message']}")
+            else:
+                logger.error(f"❌ Failed: {result['message']}")
+                
+        elif args.remediate_command == 'restore':
+            reason = args.reason or "CLI-initiated restoration"
+            logger.info(f"🔓 Restoring asset {args.asset_id}...")
+            from enforcement import restore_asset
+            result = restore_asset(args.asset_id, reason=reason)
+            if result['success']:
+                logger.info(f"✅ Success: {result['message']}")
+            else:
+                logger.error(f"❌ Failed: {result['message']}")
+        else:
+            remediate_parser.print_help()
                 
     except Exception as e:
         logger.error(f"❌ Error: {str(e)}")
