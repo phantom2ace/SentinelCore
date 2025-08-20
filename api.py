@@ -29,7 +29,7 @@ def get_assets():
                 'ip': asset.ip,
                 'hostname': asset.hostname,
                 'os': asset.os,
-                'type': asset.type,
+                'type': asset.asset_type,  # Changed from asset.type to asset.asset_type
                 'cloud_provider': asset.cloud_provider
             } for asset in assets]
         })
@@ -60,7 +60,7 @@ def get_asset(asset_id):
                 'ip': asset.ip,
                 'hostname': asset.hostname,
                 'os': asset.os,
-                'type': asset.type,
+                'type': asset.asset_type,  # Changed from asset.type to asset.asset_type
                 'cloud_provider': asset.cloud_provider,
                 'services': [{
                     'id': service.id,
