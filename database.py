@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Float, Boolean
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 Base = declarative_base()
 
@@ -9,7 +9,7 @@ class Asset(Base):
     ip = Column(String(15), nullable=False)
     hostname = Column(String(100))
     os = Column(String(50))
-    asset_type = Column(String(50))
+    type = Column(String(50))  # Changed from asset_type to match api.py usage
     cloud_provider = Column(String(20))
     services = relationship('Service', back_populates='asset')
     vulnerabilities = relationship('Vulnerability', back_populates='asset')
@@ -34,5 +34,9 @@ class Vulnerability(Base):
     asset_id = Column(Integer, ForeignKey('assets.id'))
     asset = relationship('Asset', back_populates='vulnerabilities')
 
+# Create engine and session
 engine = create_engine('sqlite:///sentinel_core.db')
+Session = sessionmaker(bind=engine)  # This was missing!
+
+# Create tables
 Base.metadata.create_all(engine)
