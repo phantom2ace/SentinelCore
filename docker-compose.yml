@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  sentinelcore:
+    build: .
+    container_name: sentinelcore_app
+    ports:
+      - "5000:5000" # Maps host port 5000 to container port 5000
+    volumes:
+      - .:/app # Mounts your code into the container for development
+      - sentinel_data:/app/data # Persistent volume for the database
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=production
+      # You will add other environment variables (like NVD_API_KEY) here later
+    restart: unless-stopped # Automatically restart the container if it stops
+
+volumes:
+  sentinel_data: # Named volume to persist your SQLite database even if the container is removed
