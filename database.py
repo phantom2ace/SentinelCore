@@ -11,6 +11,8 @@ class Asset(Base):
     os = Column(String(50))
     asset_type = Column(String(50))
     cloud_provider = Column(String(20))
+    isolated = Column(Boolean, default=False)
+    isolation_time = Column(String(50), nullable=True)
     services = relationship('Service', back_populates='asset')
     vulnerabilities = relationship('Vulnerability', back_populates='asset')
 
@@ -31,8 +33,22 @@ class Vulnerability(Base):
     description = Column(String(500))
     cvss_score = Column(Float)
     exploit_available = Column(Boolean)
+    remediated = Column(Boolean, default=False)
+    auto_remediated = Column(Boolean, default=False)
+    remediation_date = Column(String(50), nullable=True)
     asset_id = Column(Integer, ForeignKey('assets.id'))
     asset = relationship('Asset', back_populates='vulnerabilities')
+
+# Create a new class for remediation history
+class RemediationHistory(Base):
+    __tablename__ = 'remediation_history'
+    id = Column(Integer, primary_key=True)
+    date = Column(String(50), nullable=False)
+    asset_id = Column(Integer, ForeignKey('assets.id'))
+    action = Column(String(100), nullable=False)
+    status = Column(String(20), nullable=False)  # 'successful', 'failed'
+    details = Column(String(500))
+    asset = relationship('Asset')
 
 # Create engine and session
 engine = create_engine('sqlite:///sentinel_core.db')

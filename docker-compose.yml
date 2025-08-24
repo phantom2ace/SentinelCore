@@ -7,13 +7,50 @@ services:
     ports:
       - "5000:5000" # Maps host port 5000 to container port 5000
     volumes:
-      - .:/app # Mounts your code into the container for development
-      - sentinel_data:/app/data # Persistent volume for the database
+      - sentinel_data:/app/data # Persistent volume for the database and scan results
+    env_file:
+      - .env # Load environment variables from .env file
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=production
-      # You will add other environment variables (like NVD_API_KEY) here later
+      - PYTHONUNBUFFERED=1
+      # NVD_API_KEY will be loaded from .env file
+      # SECRET_KEY will be loaded from .env file
+      # DEFAULT_SUBNET will be loaded from .env file
     restart: unless-stopped # Automatically restart the container if it stops
+    networks:
+      - sentinel_network
+      - host # Required for network scanning
+    cap_add:
+      - NET_ADMIN # Required for nmap scanning
+      - NET_RAW
+    # For production, consider using specific user for security
+    # user: "sentineluser"
+
+  # Uncomment to add a separate scheduler service
+  # scheduler:
+  #   build: .
+  #   container_name: sentinelcore_scheduler
+  #   command: python scheduler.py
+  #   volumes:
+  #     - sentinel_data:/app/data
+  #   env_file:
+  #     - .env
+  #   restart: unless-stopped
+  #   networks:
+  #     - sentinel_network
+  #     - host
+  #   cap_add:
+  #     - NET_ADMIN
+  #     - NET_RAW
+  #   depends_on:
+  #     - sentinelcore
 
 volumes:
   sentinel_data: # Named volume to persist your SQLite database even if the container is removed
+
+networks:
+  sentinel_network:
+    driver: bridge
+  host:
+    external: true

@@ -50,6 +50,18 @@ def _isolate_cloud_asset(asset):
             time.sleep(1)  # Simulate API call
             return {"success": True, "message": f"Applied Azure NSG isolation for {asset.ip}"}
             
+        elif asset.cloud_provider.lower() == "gcp":
+            # Simulate GCP firewall rule modification
+            logger.info(f"Applying GCP firewall rule isolation for {asset.ip}")
+            time.sleep(1)  # Simulate API call
+            return {"success": True, "message": f"Applied GCP firewall rule isolation for {asset.ip}"}
+            
+        elif asset.cloud_provider.lower() == "oci":
+            # Simulate OCI security list modification
+            logger.info(f"Applying OCI security list isolation for {asset.ip}")
+            time.sleep(1)  # Simulate API call
+            return {"success": True, "message": f"Applied OCI security list isolation for {asset.ip}"}
+            
         else:
             logger.warning(f"Unsupported cloud provider: {asset.cloud_provider}")
             return {"success": False, "message": f"Unsupported cloud provider: {asset.cloud_provider}"}
@@ -107,14 +119,73 @@ def restore_asset(asset_id, reason="Isolation period complete"):
     
     logger.info(f"Restoring network access for {asset.hostname} ({asset.ip}) due to: {reason}")
     
-    # Simulate restoration process
-    time.sleep(2)  # Simulate API calls
-    
-    result = {"success": True, "message": f"Restored network access for {asset.ip}"}
+    # Determine restoration method based on asset type and environment
+    if asset.cloud_provider:
+        result = _restore_cloud_asset(asset)
+    else:
+        result = _restore_onprem_asset(asset)
     
     # Record restoration action in audit log
+    _record_restoration_event(asset, reason, result)
+    
+    return result
+
+def _restore_cloud_asset(asset):
+    """Restore a cloud-based asset by reverting security group changes"""
+    try:
+        if asset.cloud_provider.lower() == "aws":
+            # Simulate AWS security group restoration
+            logger.info(f"Reverting AWS security group isolation for {asset.ip}")
+            time.sleep(1)  # Simulate API call
+            return {"success": True, "message": f"Restored AWS security group access for {asset.ip}"}
+            
+        elif asset.cloud_provider.lower() == "azure":
+            # Simulate Azure NSG restoration
+            logger.info(f"Reverting Azure NSG isolation for {asset.ip}")
+            time.sleep(1)  # Simulate API call
+            return {"success": True, "message": f"Restored Azure NSG access for {asset.ip}"}
+            
+        elif asset.cloud_provider.lower() == "gcp":
+            # Simulate GCP firewall rule restoration
+            logger.info(f"Reverting GCP firewall rule isolation for {asset.ip}")
+            time.sleep(1)  # Simulate API call
+            return {"success": True, "message": f"Restored GCP firewall rule access for {asset.ip}"}
+            
+        elif asset.cloud_provider.lower() == "oci":
+            # Simulate OCI security list restoration
+            logger.info(f"Reverting OCI security list isolation for {asset.ip}")
+            time.sleep(1)  # Simulate API call
+            return {"success": True, "message": f"Restored OCI security list access for {asset.ip}"}
+            
+        else:
+            logger.warning(f"Unsupported cloud provider: {asset.cloud_provider}")
+            return {"success": False, "message": f"Unsupported cloud provider: {asset.cloud_provider}"}
+    
+    except Exception as e:
+        logger.error(f"Error restoring cloud asset {asset.ip}: {str(e)}")
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+def _restore_onprem_asset(asset):
+    """Restore an on-premises asset by reverting firewall rules"""
+    try:
+        # Simulate firewall rule reversion
+        logger.info(f"Reverting firewall isolation rules for {asset.ip}")
+        
+        # This would contain actual firewall rule reversion logic
+        time.sleep(1.5)  # Simulate longer operation time
+        
+        return {"success": True, "message": f"Restored network access for {asset.ip}"}
+    
+    except Exception as e:
+        logger.error(f"Error restoring on-premises asset {asset.ip}: {str(e)}")
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+def _record_restoration_event(asset, reason, result):
+    """Record restoration action in audit log"""
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-    log_entry = f"{timestamp} - RESTORATION - Asset: {asset.hostname} ({asset.ip}) - Reason: {reason} - Result: SUCCESS"
+    log_entry = f"{timestamp} - RESTORATION - Asset: {asset.hostname} ({asset.ip}) - Reason: {reason} - Result: {'SUCCESS' if result['success'] else 'FAILED'}"
+    
+    # In a real implementation, this would write to a secure audit log
     logger.info(f"Audit: {log_entry}")
     
     try:

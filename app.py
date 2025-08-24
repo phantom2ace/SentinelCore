@@ -42,11 +42,19 @@ def create_app():
             high_risk = session.query(Vulnerability).filter(Vulnerability.cvss_score >= 7.0).count()
             avg_cvss = session.query(func.avg(Vulnerability.cvss_score)).scalar() or 0
             
+            # Remediation statistics
+            isolated_count = session.query(Asset).filter(Asset.isolated == True).count()
+            remediated_count = session.query(Vulnerability).filter(Vulnerability.remediated == True).count()
+            auto_remediated = session.query(Vulnerability).filter(Vulnerability.auto_remediated == True).count()
+            
             return dict(
                 asset_count=asset_count,
                 vuln_count=vuln_count,
                 high_risk=high_risk,
-                avg_cvss=round(avg_cvss, 1)
+                avg_cvss=round(avg_cvss, 1),
+                isolated_count=isolated_count,
+                remediated_count=remediated_count,
+                auto_remediated=auto_remediated
             )
         finally:
             session.close()

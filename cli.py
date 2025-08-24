@@ -6,7 +6,7 @@ from scanner import full_scan
 from vulnerability_scanner import scan_vulnerabilities
 from database import Asset, Vulnerability, Service, engine
 from sqlalchemy.orm import sessionmaker
-from cloud_integration import discover_aws_resources, discover_azure_resources
+from cloud_integration import discover_aws_resources, discover_azure_resources, discover_gcp_resources, discover_oci_resources
 from reporting import generate_csv_report
 
 # Configure logging
@@ -102,6 +102,16 @@ def main():
         help='Azure subscription ID'
     )
     
+    gcp_parser = subparsers.add_parser(
+        'discover-gcp',
+        help='Discover Google Cloud Platform resources'
+    )
+    
+    oci_parser = subparsers.add_parser(
+        'discover-oci',
+        help='Discover Oracle Cloud Infrastructure resources'
+    )
+    
     # Reporting command
     report_parser = subparsers.add_parser(
         'generate-report',
@@ -189,6 +199,16 @@ def main():
             logger.info("☁️ Discovering Azure resources...")
             assets = discover_azure_resources(args.subscription_id)
             logger.info(f"Found {len(assets)} Azure resources")
+            
+        elif args.command == 'discover-gcp':
+            logger.info("☁️ Discovering Google Cloud resources...")
+            assets = discover_gcp_resources()
+            logger.info(f"Found {len(assets)} Google Cloud resources")
+            
+        elif args.command == 'discover-oci':
+            logger.info("☁️ Discovering Oracle Cloud resources...")
+            assets = discover_oci_resources()
+            logger.info(f"Found {len(assets)} Oracle Cloud resources")
             
         elif args.command == 'generate-report':
             if args.format == 'csv':

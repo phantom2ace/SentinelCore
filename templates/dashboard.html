@@ -1,44 +1,227 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Sentinel Core Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Security Dashboard</h1>
-        
-        <div class="row">
-            <div class="col-md-4">
-                <div class="card text-white bg-primary mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Assets</h5>
-                        <p class="card-text display-4">{{ assets }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card text-white bg-warning mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">Vulnerabilities</h5>
-                        <p class="card-text display-4">{{ vulns }}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card text-white bg-danger mb-3">
-                    <div class="card-body">
-                        <h5 class="card-title">High Risk</h5>
-                        <p class="card-text display-4">{{ high_risk }}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="mt-4">
-            <a href="/assets" class="btn btn-outline-primary me-2">View Assets</a>
-            <a href="/vulnerabilities" class="btn btn-outline-danger">View Vulnerabilities</a>
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - SentinelCore{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Security Dashboard</h1>
+        <div>
+            <button class="btn btn-primary" id="refreshDashboard">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
         </div>
     </div>
-</body>
-</html>
+    
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card status-card text-white bg-primary mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Total Assets</h6>
+                            <h2 class="card-title mb-0">{{ asset_count }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-hdd-network display-4"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-end">
+                    <a href="/assets" class="text-white">View Details <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card status-card text-white bg-warning mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Vulnerabilities</h6>
+                            <h2 class="card-title mb-0">{{ vuln_count }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-exclamation-triangle display-4"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-end">
+                    <a href="/vulnerabilities" class="text-white">View Details <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card status-card text-white bg-danger mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">High Risk</h6>
+                            <h2 class="card-title mb-0">{{ high_risk }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-shield-exclamation display-4"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-end">
+                    <a href="/vulnerabilities" class="text-white">View Details <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card status-card text-white bg-success mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Avg CVSS Score</h6>
+                            <h2 class="card-title mb-0">{{ avg_cvss }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-graph-up display-4"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 text-end">
+                    <a href="/vulnerabilities" class="text-white">View Details <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Vulnerability Severity Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="vulnerabilityChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Asset Distribution by Type</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="assetTypeChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Recent Activity</h5>
+                    <button class="btn btn-sm btn-outline-secondary">View All</button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Event</th>
+                                    <th>Details</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Today 10:30 AM</td>
+                                    <td>New Asset Discovered</td>
+                                    <td>192.168.1.105 (Windows Server)</td>
+                                    <td><span class="badge bg-info">New</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Today 09:15 AM</td>
+                                    <td>Vulnerability Scan Completed</td>
+                                    <td>15 assets scanned, 3 vulnerabilities found</td>
+                                    <td><span class="badge bg-success">Completed</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Yesterday 4:45 PM</td>
+                                    <td>Critical Vulnerability</td>
+                                    <td>CVE-2023-1234 on 192.168.1.100</td>
+                                    <td><span class="badge bg-danger">Critical</span></td>
+                                </tr>
+                                <tr>
+                                    <td>Yesterday 2:30 PM</td>
+                                    <td>Asset Isolated</td>
+                                    <td>192.168.1.102 isolated due to malware</td>
+                                    <td><span class="badge bg-warning">Isolated</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Sample data for charts
+    document.addEventListener('DOMContentLoaded', function() {
+        // Vulnerability Severity Chart
+        const vulnCtx = document.getElementById('vulnerabilityChart').getContext('2d');
+        const vulnChart = new Chart(vulnCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Critical', 'High', 'Medium', 'Low'],
+                datasets: [{
+                    data: [{{ high_risk }}, {{ vuln_count - high_risk - 5 }}, 5, 3],
+                    backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#0dcaf0'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+        
+        // Asset Type Chart
+        const assetCtx = document.getElementById('assetTypeChart').getContext('2d');
+        const assetChart = new Chart(assetCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Servers', 'Workstations', 'Network Devices', 'Cloud Resources'],
+                datasets: [{
+                    label: 'Number of Assets',
+                    data: [Math.floor({{ asset_count }} * 0.3), Math.floor({{ asset_count }} * 0.4), Math.floor({{ asset_count }} * 0.1), Math.floor({{ asset_count }} * 0.2)],
+                    backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#0dcaf0'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    });
+    
+    // Refresh dashboard button
+    document.getElementById('refreshDashboard').addEventListener('click', function() {
+        location.reload();
+    });
+</script>
+{% endblock %}

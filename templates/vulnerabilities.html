@@ -1,43 +1,255 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Vulnerabilities - Sentinel Core</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-</head>
-<body>
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Discovered Vulnerabilities</h1>
-            <a href="/" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Dashboard
-            </a>
-        </div>
-        
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>CVE ID</th>
-                        <th>CVSS</th>
-                        <th>Exploit</th>
-                        <th>Asset IP</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for vuln in vulnerabilities %}
-                    <tr class="{% if vuln.cvss_score >= 7.0 %}table-danger{% elif vuln.cvss_score >= 4.0 %}table-warning{% else %}table-info{% endif %}">
-                        <td>{{ vuln.cve_id }}</td>
-                        <td>{{ vuln.cvss_score }}</td>
-                        <td>{% if vuln.exploit_available %}<i class="bi bi-exclamation-triangle-fill text-danger"></i> Yes{% else %}No{% endif %}</td>
-                        <td>{{ vuln.asset.ip }}</td>
-                        <td>{{ vuln.description[:100] }}{% if vuln.description|length > 100 %}...{% endif %}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+{% extends 'base.html' %}
+
+{% block title %}Vulnerabilities - SentinelCore{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Vulnerability Management</h1>
+        <div>
+            <button class="btn btn-outline-secondary me-2" id="exportBtn">
+                <i class="bi bi-download"></i> Export
+            </button>
+            <button class="btn btn-primary" id="scanBtn">
+                <i class="bi bi-shield-check"></i> Run Vulnerability Scan
+            </button>
         </div>
     </div>
-</body>
-</html>
+    
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Critical</h6>
+                            <h2 class="card-title mb-0">{{ vulnerabilities|selectattr('cvss_score', 'ge', 9.0)|list|length }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-exclamation-triangle-fill display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2">High</h6>
+                            <h2 class="card-title mb-0">{{ vulnerabilities|selectattr('cvss_score', 'ge', 7.0)|selectattr('cvss_score', 'lt', 9.0)|list|length }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-exclamation-triangle display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Medium</h6>
+                            <h2 class="card-title mb-0">{{ vulnerabilities|selectattr('cvss_score', 'ge', 4.0)|selectattr('cvss_score', 'lt', 7.0)|list|length }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-exclamation-triangle display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2">Low</h6>
+                            <h2 class="card-title mb-0">{{ vulnerabilities|selectattr('cvss_score', 'lt', 4.0)|list|length }}</h2>
+                        </div>
+                        <div>
+                            <i class="bi bi-exclamation-triangle display-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="severityFilter" class="form-label">Severity</label>
+                    <select class="form-select" id="severityFilter">
+                        <option value="">All</option>
+                        <option value="critical">Critical (9.0-10.0)</option>
+                        <option value="high">High (7.0-8.9)</option>
+                        <option value="medium">Medium (4.0-6.9)</option>
+                        <option value="low">Low (0.1-3.9)</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="exploitFilter" class="form-label">Exploit Available</label>
+                    <select class="form-select" id="exploitFilter">
+                        <option value="">All</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="assetFilter" class="form-label">Asset IP</label>
+                    <input type="text" class="form-control" id="assetFilter" placeholder="Filter by IP...">
+                </div>
+                <div class="col-md-3">
+                    <label for="searchInput" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="CVE ID or description...">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vulnerabilities Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">Discovered Vulnerabilities <span class="badge bg-primary ms-2">{{ vulnerabilities|length }}</span></h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="vulnTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>CVE ID</th>
+                            <th>CVSS Score</th>
+                            <th>Severity</th>
+                            <th>Exploit Available</th>
+                            <th>Asset IP</th>
+                            <th>Description</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vuln in vulnerabilities %}
+                        <tr>
+                            <td>
+                                <a href="https://nvd.nist.gov/vuln/detail/{{ vuln.cve_id }}" target="_blank" class="text-decoration-none">
+                                    {{ vuln.cve_id }}
+                                    <i class="bi bi-box-arrow-up-right ms-1 small"></i>
+                                </a>
+                            </td>
+                            <td>{{ vuln.cvss_score }}</td>
+                            <td>
+                                {% if vuln.cvss_score >= 9.0 %}
+                                <span class="badge bg-danger">Critical</span>
+                                {% elif vuln.cvss_score >= 7.0 %}
+                                <span class="badge bg-warning text-dark">High</span>
+                                {% elif vuln.cvss_score >= 4.0 %}
+                                <span class="badge bg-info text-dark">Medium</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if vuln.exploit_available %}
+                                <span class="badge bg-danger"><i class="bi bi-bug-fill me-1"></i>Yes</span>
+                                {% else %}
+                                <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ vuln.asset.ip }}</td>
+                            <td>{{ vuln.description[:100] }}{% if vuln.description|length > 100 %}...{% endif %}</td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#"><i class="bi bi-bandaid me-2"></i>Remediate</a></li>
+                                        <li><a class="dropdown-item" href="#"><i class="bi bi-shield-lock me-2"></i>Isolate Asset</a></li>
+                                        <li><a class="dropdown-item" href="#"><i class="bi bi-info-circle me-2"></i>Details</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-x-circle me-2"></i>Mark as False Positive</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Filter functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const severityFilter = document.getElementById('severityFilter');
+        const exploitFilter = document.getElementById('exploitFilter');
+        const assetFilter = document.getElementById('assetFilter');
+        const table = document.getElementById('vulnTable');
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        
+        function filterTable() {
+            const searchValue = searchInput.value.toLowerCase();
+            const severityValue = severityFilter.value;
+            const exploitValue = exploitFilter.value;
+            const assetValue = assetFilter.value.toLowerCase();
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const cveId = row.cells[0].textContent.toLowerCase();
+                const cvssScore = parseFloat(row.cells[1].textContent);
+                const severity = row.cells[2].textContent.toLowerCase();
+                const exploit = row.cells[3].textContent.toLowerCase();
+                const assetIp = row.cells[4].textContent.toLowerCase();
+                const description = row.cells[5].textContent.toLowerCase();
+                
+                const matchesSearch = cveId.includes(searchValue) || description.includes(searchValue);
+                
+                let matchesSeverity = true;
+                if (severityValue === 'critical') {
+                    matchesSeverity = cvssScore >= 9.0;
+                } else if (severityValue === 'high') {
+                    matchesSeverity = cvssScore >= 7.0 && cvssScore < 9.0;
+                } else if (severityValue === 'medium') {
+                    matchesSeverity = cvssScore >= 4.0 && cvssScore < 7.0;
+                } else if (severityValue === 'low') {
+                    matchesSeverity = cvssScore < 4.0;
+                }
+                
+                const matchesExploit = exploitValue === '' || 
+                                     (exploitValue === 'yes' && exploit.includes('yes')) || 
+                                     (exploitValue === 'no' && exploit.includes('no'));
+                                     
+                const matchesAsset = assetValue === '' || assetIp.includes(assetValue);
+                
+                row.style.display = (matchesSearch && matchesSeverity && matchesExploit && matchesAsset) ? '' : 'none';
+            }
+        }
+        
+        searchInput.addEventListener('keyup', filterTable);
+        severityFilter.addEventListener('change', filterTable);
+        exploitFilter.addEventListener('change', filterTable);
+        assetFilter.addEventListener('keyup', filterTable);
+        
+        // Export button
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            alert('Exporting vulnerability report to CSV...');
+        });
+        
+        // Scan button
+        document.getElementById('scanBtn').addEventListener('click', function() {
+            alert('Initiating new vulnerability scan...');
+        });
+    });
+</script>
+{% endblock %}

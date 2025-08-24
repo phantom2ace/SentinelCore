@@ -2,6 +2,7 @@ import nmap
 import logging
 from database import Asset, Service, engine
 from sqlalchemy.orm import sessionmaker
+from alerting import send_new_asset_alert
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -58,6 +59,7 @@ def full_scan(subnet):
             session.flush()
             
             # Record services
+            services_list = []
             for proto in device_data.get('tcp', {}):
                 service_data = device_data['tcp'][proto]
                 service = Service(
@@ -68,6 +70,21 @@ def full_scan(subnet):
                     asset_id=asset.id
                 )
                 session.add(service)
+                
+                # Add to services list for alert
+                services_list.append({
+                    'port': proto,
+                    'protocol': 'tcp',
+                    'name': service_data['name']
+                })
+            
+            # Send alert for new asset discovery
+            send_new_asset_alert(
+                asset_ip=ip,
+                hostname=hostname,
+                os_info=os_info,
+                services=services_list
+            )
                 
         session.commit()
         logger.info(f"✅ Scan complete! Saved {len(nm.all_hosts())} devices")

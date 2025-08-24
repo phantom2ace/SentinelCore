@@ -1,45 +1,207 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Assets - Sentinel Core</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-</head>
-<body>
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Discovered Assets</h1>
-            <a href="/" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Dashboard
-            </a>
-        </div>
-        
-        <div class="table-responsive">
-            <table class="table table-striped table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>IP Address</th>
-                        <th>Hostname</th>
-                        <th>OS</th>
-                        <th>Type</th>
-                        <th>Cloud Provider</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for asset in assets %}
-                    <tr>
-                        <td>{{ asset.id }}</td>
-                        <td>{{ asset.ip }}</td>
-                        <td>{{ asset.hostname }}</td>
-                        <td>{{ asset.os }}</td>
-                        <td>{{ asset.asset_type }}</td>
-                        <td>{{ asset.cloud_provider }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+{% extends 'base.html' %}
+
+{% block title %}Assets - SentinelCore{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Asset Inventory</h1>
+        <div>
+            <button class="btn btn-outline-secondary me-2" id="exportBtn">
+                <i class="bi bi-download"></i> Export
+            </button>
+            <button class="btn btn-primary" id="scanBtn">
+                <i class="bi bi-search"></i> Scan for Assets
+            </button>
         </div>
     </div>
-</body>
-</html>
+    
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label for="osFilter" class="form-label">Operating System</label>
+                    <select class="form-select" id="osFilter">
+                        <option value="">All</option>
+                        <option value="Windows">Windows</option>
+                        <option value="Linux">Linux</option>
+                        <option value="macOS">macOS</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="typeFilter" class="form-label">Asset Type</label>
+                    <select class="form-select" id="typeFilter">
+                        <option value="">All</option>
+                        <option value="Server">Server</option>
+                        <option value="Workstation">Workstation</option>
+                        <option value="Network Device">Network Device</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="cloudFilter" class="form-label">Cloud Provider</label>
+                    <select class="form-select" id="cloudFilter">
+                        <option value="">All</option>
+                        <option value="AWS">AWS</option>
+                        <option value="Azure">Azure</option>
+                        <option value="GCP">GCP</option>
+                        <option value="OCI">Oracle Cloud</option>
+                        <option value="N/A">On-Premise</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="searchInput" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="IP, hostname, or ID...">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assets Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">Discovered Assets <span class="badge bg-primary ms-2">{{ assets|length }}</span></h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="assetsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>IP Address</th>
+                            <th>Hostname</th>
+                            <th>OS</th>
+                            <th>Type</th>
+                            <th>Cloud Provider</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for asset in assets %}
+                        <tr>
+                            <td>{{ asset.id }}</td>
+                            <td>{{ asset.ip }}</td>
+                            <td>{{ asset.hostname }}</td>
+                            <td>
+                                {% if asset.os == 'Windows' %}
+                                <i class="bi bi-windows text-primary me-1"></i>
+                                {% elif asset.os == 'Linux' %}
+                                <i class="bi bi-ubuntu text-danger me-1"></i>
+                                {% elif asset.os == 'macOS' %}
+                                <i class="bi bi-apple text-secondary me-1"></i>
+                                {% else %}
+                                <i class="bi bi-hdd text-secondary me-1"></i>
+                                {% endif %}
+                                {{ asset.os }}
+                            </td>
+                            <td>
+                                {% if asset.asset_type == 'Server' %}
+                                <span class="badge bg-info text-dark">Server</span>
+                                {% elif asset.asset_type == 'Workstation' %}
+                                <span class="badge bg-secondary">Workstation</span>
+                                {% elif asset.asset_type == 'Network Device' %}
+                                <span class="badge bg-primary">Network Device</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark">{{ asset.asset_type }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if asset.cloud_provider == 'AWS' %}
+                                <span class="badge bg-warning text-dark">AWS</span>
+                                {% elif asset.cloud_provider == 'Azure' %}
+                                <span class="badge bg-primary">Azure</span>
+                                {% elif asset.cloud_provider == 'GCP' %}
+                                <span class="badge bg-success">GCP</span>
+                                {% elif asset.cloud_provider == 'OCI' %}
+                                <span class="badge bg-danger">Oracle Cloud</span>
+                                {% elif asset.cloud_provider == None or asset.cloud_provider == 'N/A' %}
+                                <span class="badge bg-secondary">On-Premise</span>
+                                {% else %}
+                                <span class="badge bg-light text-dark">{{ asset.cloud_provider }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-success">Online</span>
+                            </td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#"><i class="bi bi-search me-2"></i>Scan</a></li>
+                                        <li><a class="dropdown-item" href="#"><i class="bi bi-shield-lock me-2"></i>Isolate</a></li>
+                                        <li><a class="dropdown-item" href="#"><i class="bi bi-info-circle me-2"></i>Details</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash me-2"></i>Remove</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Filter functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const osFilter = document.getElementById('osFilter');
+        const typeFilter = document.getElementById('typeFilter');
+        const cloudFilter = document.getElementById('cloudFilter');
+        const table = document.getElementById('assetsTable');
+        const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+        
+        function filterTable() {
+            const searchValue = searchInput.value.toLowerCase();
+            const osValue = osFilter.value;
+            const typeValue = typeFilter.value;
+            const cloudValue = cloudFilter.value;
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const ip = row.cells[1].textContent.toLowerCase();
+                const hostname = row.cells[2].textContent.toLowerCase();
+                const id = row.cells[0].textContent.toLowerCase();
+                const os = row.cells[3].textContent.trim();
+                const type = row.cells[4].textContent.trim();
+                const cloud = row.cells[5].textContent.trim();
+                
+                const matchesSearch = ip.includes(searchValue) || 
+                                     hostname.includes(searchValue) || 
+                                     id.includes(searchValue);
+                                     
+                const matchesOs = osValue === '' || os.includes(osValue);
+                const matchesType = typeValue === '' || type.includes(typeValue);
+                const matchesCloud = cloudValue === '' || 
+                                    (cloudValue === 'N/A' && cloud.includes('On-Premise')) || 
+                                    cloud.includes(cloudValue);
+                
+                row.style.display = (matchesSearch && matchesOs && matchesType && matchesCloud) ? '' : 'none';
+            }
+        }
+        
+        searchInput.addEventListener('keyup', filterTable);
+        osFilter.addEventListener('change', filterTable);
+        typeFilter.addEventListener('change', filterTable);
+        cloudFilter.addEventListener('change', filterTable);
+        
+        // Export button
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            alert('Exporting asset inventory to CSV...');
+        });
+        
+        // Scan button
+        document.getElementById('scanBtn').addEventListener('click', function() {
+            alert('Initiating new asset discovery scan...');
+        });
+    });
+</script>
+{% endblock %}
