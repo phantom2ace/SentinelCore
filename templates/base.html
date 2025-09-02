@@ -4,270 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SentinelCore{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.1/font/bootstrap-icons.min.css" rel="stylesheet" crossorigin="anonymous">
+    
+    <!-- Custom CSS -->
     <style>
-        :root {
-            --primary-color: #0d6efd;
-            --secondary-color: #6c757d;
-            --success-color: #198754;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --info-color: #0dcaf0;
-            --sidebar-width: 250px;
-        }
-        
         body {
-            min-height: 100vh;
-            transition: background-color 0.3s, color 0.3s;
+            background-color: #f8f9fa;
         }
-        
-        body.dark-mode {
-            background-color: #121212;
-            color: #e0e0e0;
+        .navbar-brand {
+            font-weight: bold;
         }
-        
-        .dark-mode .card {
-            background-color: #1e1e1e;
-            color: #e0e0e0;
-            border-color: #333;
-        }
-        
-        .dark-mode .table {
-            color: #e0e0e0;
-        }
-        
-        .dark-mode .table-striped > tbody > tr:nth-of-type(odd) {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        
-        .dark-mode .table-hover > tbody > tr:hover {
-            background-color: rgba(255, 255, 255, 0.075);
-        }
-        
-        .dark-mode .form-control {
-            background-color: #333;
-            color: #e0e0e0;
-            border-color: #444;
-        }
-        
-        .dark-mode .form-text {
-            color: #aaa;
-        }
-        
-        .sidebar {
-            width: var(--sidebar-width);
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            z-index: 1000;
-            background-color: #212529;
-            padding-top: 20px;
-            transition: all 0.3s;
-        }
-        
-        .sidebar-header {
-            padding: 0 15px 20px 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .sidebar-brand {
-            color: white;
-            font-size: 1.5rem;
-            font-weight: 700;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-        }
-        
-        .sidebar-brand i {
-            margin-right: 10px;
-        }
-        
-        .sidebar-menu {
-            padding: 20px 0;
-            list-style: none;
-            margin: 0;
-        }
-        
-        .sidebar-menu li {
-            margin-bottom: 5px;
-        }
-        
-        .sidebar-menu a {
-            display: block;
-            padding: 10px 15px;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-        }
-        
-        .sidebar-menu a:hover, .sidebar-menu a.active {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: white;
-            border-left-color: var(--primary-color);
-        }
-        
-        .sidebar-menu a i {
-            margin-right: 10px;
-            width: 20px;
-            text-align: center;
-        }
-        
-        .content {
-            margin-left: var(--sidebar-width);
-            padding: 20px;
-            transition: all 0.3s;
-        }
-        
-        .navbar {
-            margin-left: var(--sidebar-width);
-            transition: all 0.3s;
-        }
-        
         .status-card {
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s;
+            transition: transform 0.2s;
         }
-        
         .status-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .dark-mode-toggle {
-            cursor: pointer;
-        }
-        
-        @media (max-width: 768px) {
-            .sidebar {
-                margin-left: calc(-1 * var(--sidebar-width));
-            }
-            
-            .sidebar.active {
-                margin-left: 0;
-            }
-            
-            .content, .navbar {
-                margin-left: 0;
-            }
-            
-            .content.active, .navbar.active {
-                margin-left: var(--sidebar-width);
-            }
+            transform: translateY(-2px);
         }
     </style>
+    
+    {% block head %}{% endblock %}
 </head>
 <body>
-    <!-- Sidebar -->
-    <nav class="sidebar">
-        <div class="sidebar-header">
-            <a href="/" class="sidebar-brand">
-                <i class="bi bi-shield-lock-fill"></i>
-                SentinelCore
-            </a>
-        </div>
-        
-        <ul class="sidebar-menu">
-            <li>
-                <a href="/" class="{% if request.path == '/' %}active{% endif %}">
-                    <i class="bi bi-speedometer2"></i> Dashboard
-                </a>
-            </li>
-            <li>
-                <a href="/assets" class="{% if request.path == '/assets' %}active{% endif %}">
-                    <i class="bi bi-hdd-network"></i> Assets
-                </a>
-            </li>
-            <li>
-                <a href="/vulnerabilities" class="{% if request.path == '/vulnerabilities' %}active{% endif %}">
-                    <i class="bi bi-exclamation-triangle"></i> Vulnerabilities
-                </a>
-            </li>
-            <li>
-                <a href="/remediation" class="{% if '/remediation' in request.path %}active{% endif %}">
-                    <i class="bi bi-tools"></i> Remediation
-                </a>
-            </li>
-            <li>
-                <a href="/dashboard/reports" class="{% if '/reports' in request.path %}active{% endif %}">
-                    <i class="bi bi-file-earmark-text"></i> Reports
-                </a>
-            </li>
-        </ul>
-    </nav>
-    
-    <!-- Top Navbar -->
+    <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container-fluid">
-            <button class="btn btn-dark d-md-none" id="sidebarToggle">
-                <i class="bi bi-list"></i>
-            </button>
-            
-            <div class="ms-auto d-flex align-items-center">
-                <div class="dark-mode-toggle text-light me-3" id="darkModeToggle">
-                    <i class="bi bi-moon-stars-fill"></i>
-                </div>
-                <div class="dropdown">
-                    <button class="btn btn-dark dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-person-circle"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                        <li><a class="dropdown-item" href="#">Settings</a></li>
-                        <li><a class="dropdown-item" href="#">Profile</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#">Logout</a></li>
-                    </ul>
-                </div>
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-shield-check"></i> SentinelCore
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Dashboard</a>
+                <a class="nav-link" href="/assets">Assets</a>
+                <a class="nav-link" href="/vulnerabilities">Vulnerabilities</a>
             </div>
         </div>
     </nav>
-    
+
     <!-- Main Content -->
-    <div class="content">
+    <main class="py-4">
         {% block content %}{% endblock %}
-    </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </main>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js" crossorigin="anonymous"></script>
+    <!-- Add this in base.html (inside <head> or before closing </body>) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        // Dark mode toggle
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const body = document.body;
-        
-        // Check for saved dark mode preference
-        if (localStorage.getItem('darkMode') === 'enabled') {
-            body.classList.add('dark-mode');
-            darkModeToggle.innerHTML = '<i class="bi bi-sun-fill"></i>';
-        }
-        
-        darkModeToggle.addEventListener('click', () => {
-            body.classList.toggle('dark-mode');
-            
-            if (body.classList.contains('dark-mode')) {
-                localStorage.setItem('darkMode', 'enabled');
-                darkModeToggle.innerHTML = '<i class="bi bi-sun-fill"></i>';
-            } else {
-                localStorage.setItem('darkMode', 'disabled');
-                darkModeToggle.innerHTML = '<i class="bi bi-moon-stars-fill"></i>';
-            }
-        });
-        
-        // Sidebar toggle for mobile
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const sidebar = document.querySelector('.sidebar');
-        const content = document.querySelector('.content');
-        const navbar = document.querySelector('.navbar');
-        
-        sidebarToggle.addEventListener('click', () => {
-            sidebar.classList.toggle('active');
-            content.classList.toggle('active');
-            navbar.classList.toggle('active');
-        });
-    </script>
-    
+
     {% block scripts %}{% endblock %}
 </body>
 </html>

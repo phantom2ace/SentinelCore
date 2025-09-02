@@ -169,7 +169,6 @@
 
 {% block scripts %}
 <script>
-    // Sample data for charts
     document.addEventListener('DOMContentLoaded', function() {
         // Vulnerability Severity Chart
         const vulnCtx = document.getElementById('vulnerabilityChart').getContext('2d');
@@ -178,7 +177,7 @@
             data: {
                 labels: ['Critical', 'High', 'Medium', 'Low'],
                 datasets: [{
-                    data: [{{ high_risk }}, {{ vuln_count - high_risk - 5 }}, 5, 3],
+                    data: [8, 12, 5, 3], // random values
                     backgroundColor: ['#dc3545', '#fd7e14', '#ffc107', '#0dcaf0'],
                     borderWidth: 1
                 }]
@@ -193,7 +192,7 @@
                 }
             }
         });
-        
+
         // Asset Type Chart
         const assetCtx = document.getElementById('assetTypeChart').getContext('2d');
         const assetChart = new Chart(assetCtx, {
@@ -202,7 +201,7 @@
                 labels: ['Servers', 'Workstations', 'Network Devices', 'Cloud Resources'],
                 datasets: [{
                     label: 'Number of Assets',
-                    data: [Math.floor({{ asset_count }} * 0.3), Math.floor({{ asset_count }} * 0.4), Math.floor({{ asset_count }} * 0.1), Math.floor({{ asset_count }} * 0.2)],
+                    data: [15, 20, 5, 10], // random values
                     backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#0dcaf0'],
                     borderWidth: 1
                 }]
@@ -217,11 +216,16 @@
                 }
             }
         });
-    });
-    
-    // Refresh dashboard button
-    document.getElementById('refreshDashboard').addEventListener('click', function() {
-        location.reload();
+
+        // Refresh dashboard button
+        const refreshBtn = document.getElementById('refreshDashboard');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                location.reload();
+            });
+        }
     });
 </script>
+
+
 {% endblock %}
